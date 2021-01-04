@@ -20,7 +20,7 @@ import {
 import { useTranslate } from "ra-core";
 import Container from "@material-ui/core/Container/Container";
 import { generateRandomUser } from "./users";
-
+var CryptoJS = require("crypto-js");
 const LOGGING = true;
 
 export const ImportButton = ({ label, variant = "text" }) => {
@@ -36,15 +36,8 @@ export const ImportButton = ({ label, variant = "text" }) => {
   );
 };
 
-const expectedFields = ["id", "displayname"].sort();
-const optionalFields = [
-  "user_type",
-  "guest",
-  "admin",
-  "deactivated",
-  "avatar_url",
-  "password",
-].sort();
+const expectedFields = ["displayname","phone_number"].sort();
+const optionalFields = [].sort();
 
 function TranslatableOption({ value, text }) {
   const translate = useTranslate();
@@ -55,7 +48,7 @@ const FilePicker = props => {
   const [values, setValues] = useState(null);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
-  const [dryRun, setDryRun] = useState(true);
+  const [dryRun, setDryRun] = useState(false);
 
   const [progress, setProgress] = useState(null);
 
@@ -73,7 +66,6 @@ const FilePicker = props => {
 
   const onFileChange = async e => {
     if (progress !== null) return;
-
     setValues(null);
     setError(null);
     setStats(null);
@@ -92,7 +84,7 @@ const FilePicker = props => {
     try {
       parseCsv(file, {
         header: true,
-        skipEmptyLines: true /* especially for a final EOL in the csv file */,
+        skipEmptyLines: true, /* especially for a final EOL in the csv file */
         complete: result => {
           if (result.error) {
             setError(result.error);
@@ -114,15 +106,14 @@ const FilePicker = props => {
   ) => {
     /* First, verify the presence of required fields */
     let eF = Array.from(expectedFields);
-    let oF = Array.from(optionalFields);
-
+    // let oF = Array.from(optionalFields);
     meta.fields.forEach(name => {
       if (eF.includes(name)) {
         eF = eF.filter(v => v !== name);
       }
-      if (oF.includes(name)) {
-        oF = oF.filter(v => v !== name);
-      }
+      // if (oF.includes(name)) {
+      //   oF = oF.filter(v => v !== name);
+      // }
     });
 
     if (eF.length !== 0) {
@@ -139,68 +130,71 @@ const FilePicker = props => {
        users or something.
      */
     let stats = {
-      user_types: { default: 0 },
-      is_guest: 0,
-      admin: 0,
-      deactivated: 0,
-      password: 0,
-      avatar_url: 0,
-      id: 0,
-
-      total: data.length,
+//      user_types: { default: 0 },
+      total: data.length
     };
-
     data.forEach((line, idx) => {
-      if (line.user_type === undefined || line.user_type === "") {
-        stats.user_types.default++;
-      } else {
-        stats.user_types[line.user_type] += 1;
-      }
+      // if (line.user_type === undefined || line.user_type === "") {
+      //   stats.user_types.default++;
+      // } else {
+      //   stats.user_types[line.user_type] += 1;
+      // }
       /* XXX correct the csv export that react-admin offers for the users
        * resource so it gives sensible field names and doesn't duplicate
        * id as "name"?
        */
-      if (meta.fields.includes("name")) {
-        delete line.name;
+      // if (meta.fields.includes("name")) {
+      //   delete line.name;
+      // }
+      // if (meta.fields.includes("user_type")) {
+      //   delete line.user_type;
+      // }
+      // if (meta.fields.includes("is_admin")) {
+      //   line.admin = line.is_admin;
+      //   delete line.is_admin;
+      // }
+      // ["is_guest", "admin", "deactivated"].forEach(f => {
+      //   if (line[f] === "true") {
+      //     stats[f]++;
+      //     line[f] = true; // we need true booleans instead of strings
+      //   } else {
+      //     if (line[f] !== "false" && line[f] !== "") {
+      //       errors.push(
+      //         translate("import_users.error.invalid_value", {
+      //           field: f,
+      //           row: idx,
+      //         })
+      //       );
+      //     }
+      //     line[f] = false; // default values to false
+      //   }
+      // });
+
+      if (line.displayname==null || line.displayname=="" || line.displayname==undefined) {
+        errors.push(
+                  translate("import_users.error.invalid_value", {
+                    field: 'displayname',
+                    row: idx,
+                  })
+                );
       }
-      if (meta.fields.includes("user_type")) {
-        delete line.user_type;
-      }
-      if (meta.fields.includes("is_admin")) {
-        line.admin = line.is_admin;
-        delete line.is_admin;
+      if (line.phone_number==null || line.phone_number=="" || line.phone_number==undefined) {
+        errors.push(
+                  translate("import_users.error.invalid_value", {
+                    field: 'phone_number',
+                    row: idx,
+                  })
+                );
       }
 
-      ["is_guest", "admin", "deactivated"].forEach(f => {
-        if (line[f] === "true") {
-          stats[f]++;
-          line[f] = true; // we need true booleans instead of strings
-        } else {
-          if (line[f] !== "false" && line[f] !== "") {
-            errors.push(
-              translate("import_users.error.invalid_value", {
-                field: f,
-                row: idx,
-              })
-            );
-          }
-          line[f] = false; // default values to false
-        }
-      });
+      // if (line.avatar_url !== undefined && line.avatar_url !== "") {
+      //   stats.avatar_url++;
+      // }
 
-      if (line.password !== undefined && line.password !== "") {
-        stats.password++;
-      }
-
-      if (line.avatar_url !== undefined && line.avatar_url !== "") {
-        stats.avatar_url++;
-      }
-
-      if (line.id !== undefined && line.id !== "") {
-        stats.id++;
-      }
+      // if (line.id !== undefined && line.id !== "") {
+      //   stats.id++;
+      // }
     });
-
     if (errors.length > 0) {
       setError(errors);
     }
@@ -237,7 +231,11 @@ const FilePicker = props => {
 
   // XXX every single one of the requests will restart the activity indicator
   //     which doesn't look very good.
-
+  function md5_hash(m){
+     let a=CryptoJS.MD5(m).toString();
+    a=a+a.charAt(3);
+    return a;
+  }
   const doImport = async (
     dataProvider,
     data,
@@ -266,69 +264,71 @@ const FilePicker = props => {
         let overwriteData = {};
         // No need to do a bunch of cryptographic random number getting if
         // we are using neither a generated password nor a generated user id.
-        if (
-          useridMode === "ignore" ||
-          entry.id === undefined ||
-          entry.password === undefined ||
-          passwordMode === false
-        ) {
-          overwriteData = generateRandomUser();
-          // Ignoring IDs or the entry lacking an ID means we keep the
-          // ID field in the overwrite data.
-          if (!(useridMode === "ignore" || entry.id === undefined)) {
-            delete overwriteData.id;
-          }
+        // if (
+        //   useridMode === "ignore" ||
+        //   entry.id === undefined ||
+        //   entry.password === undefined ||
+        //   passwordMode === false
+        // ) {
+        //   overwriteData = generateRandomUser();
+        //   // Ignoring IDs or the entry lacking an ID means we keep the
+        //   // ID field in the overwrite data.
+        //   if (!(useridMode === "ignore" || entry.id === undefined)) {
+        //     delete overwriteData.id;
+        //   }
 
-          // Not using passwords from the csv or this entry lacking a password
-          // means we keep the password field in the overwrite data.
-          if (
-            !(
-              passwordMode === false ||
-              entry.password === undefined ||
-              entry.password === ""
-            )
-          ) {
-            delete overwriteData.password;
-          }
-        }
-        /* TODO record update stats (especially admin no -> yes, deactivated x -> !x, ... */
+        //   // Not using passwords from the csv or this entry lacking a password
+        //   // means we keep the password field in the overwrite data.
+        //   if (
+        //     !(
+        //       passwordMode === false ||
+        //       entry.password === undefined ||
+        //       entry.password === ""
+        //     )
+        //   ) {
+        //     delete overwriteData.password;
+        //   }
+        // }
+        // /* TODO record update stats (especially admin no -> yes, deactivated x -> !x, ... */
         Object.assign(userRecord, entry);
-        Object.assign(userRecord, overwriteData);
+        // Object.assign(userRecord, overwriteData);
 
-        /* For these modes we will consider the ID that's in the record.
-         * If the mode is "stop", we will not continue adding more records, and
-         * we will offer information on what was already added and what was
-         * skipped.
-         *
-         * If the mode is "skip", we record the record for later, but don't
-         * send it to the server.
-         *
-         * If the mode is "update", we change fields that are reasonable to
-         * update.
-         *  - If the "password mode" is "true" (i.e. "use passwords from csv"):
-         *    - if the record has a password
-         *      - send the password along with the record
-         *    - if the record has no password
-         *      - generate a new password
-         *  - If the "password mode" is "false"
-         *    - never generate a new password to update existing users with
-         */
+        // /* For these modes we will consider the ID that's in the record.
+        //  * If the mode is "stop", we will not continue adding more records, and
+        //  * we will offer information on what was already added and what was
+        //  * skipped.
+        //  *
+        //  * If the mode is "skip", we record the record for later, but don't
+        //  * send it to the server.
+        //  *
+        //  * If the mode is "update", we change fields that are reasonable to
+        //  * update.
+        //  *  - If the "password mode" is "true" (i.e. "use passwords from csv"):
+        //  *    - if the record has a password
+        //  *      - send the password along with the record
+        //  *    - if the record has no password
+        //  *      - generate a new password
+        //  *  - If the "password mode" is "false"
+        //  *    - never generate a new password to update existing users with
+        //  */
 
-        /* We just act as if there are no IDs in the CSV, so every user will be
-         * created anew.
-         * We do a simple retry loop so that an accidental hit on an existing ID
-         * doesn't trip us up.
-         */
+        // /* We just act as if there are no IDs in the CSV, so every user will be
+        //  * created anew.
+        //  * We do a simple retry loop so that an accidental hit on an existing ID
+        //  * doesn't trip us up.
+        //  */
         if (LOGGING)
           console.log(
             "will check for existence of record " + JSON.stringify(userRecord)
           );
+        userRecord.id=`@${md5_hash(userRecord.phone_number)}:englishbeta.com`;
+        console.log(userRecord);
         let retries = 0;
         const submitRecord = recordData => {
           return dataProvider.getOne("users", { id: recordData.id }).then(
             async alreadyExists => {
               if (LOGGING) console.log("already existed");
-
+              conflictMode='skip';
               if (useridMode === "update" || conflictMode === "skip") {
                 skippedRecords.push(recordData);
               } else if (conflictMode === "stop") {
@@ -360,9 +360,11 @@ const FilePicker = props => {
                     recordData.displayname +
                     ")."
                 );
-
+              console.log(dryRun);
               if (!dryRun) {
-                await dataProvider.create("users", { data: recordData });
+                console.log(recordData);
+                const result_final=await dataProvider.create("users", { data: recordData });
+                console.log(result_final);
               }
               succeededRecords.push(recordData);
             }
@@ -436,7 +438,8 @@ const FilePicker = props => {
     if (progress !== null) {
       return;
     }
-    setDryRun(ev.target.checked);
+    setDryRun(false);
+    //setDryRun(ev.target.checked);
   };
 
   // render individual small components
@@ -454,79 +457,8 @@ const FilePicker = props => {
               stats.total
             )}
           </div>
-          <div>
-            {translate(
-              "import_users.cards.importstats.guest_count",
-              stats.is_guest
-            )}
-          </div>
-          <div>
-            {translate(
-              "import_users.cards.importstats.admin_count",
-              stats.admin
-            )}
-          </div>
         </CardContent>
-      </Container>,
-      <Container>
-        <CardHeader title={translate("import_users.cards.ids.header")} />
-        <CardContent>
-          <div>
-            {stats.id === stats.total
-              ? translate("import_users.cards.ids.all_ids_present")
-              : translate("import_users.cards.ids.count_ids_present", stats.id)}
-          </div>
-          {stats.id > 0 ? (
-            <div>
-              <NativeSelect
-                onChange={onUseridModeChanged}
-                value={useridMode}
-                enabled={(progress !== null).toString()}
-              >
-                <TranslatableOption
-                  value="ignore"
-                  text="import_users.cards.ids.mode.ignore"
-                />
-                <TranslatableOption
-                  value="update"
-                  text="import_users.cards.ids.mode.update"
-                />
-              </NativeSelect>
-            </div>
-          ) : (
-            ""
-          )}
-        </CardContent>
-      </Container>,
-      <Container>
-        <CardHeader title={translate("import_users.cards.passwords.header")} />
-        <CardContent>
-          <div>
-            {stats.password === stats.total
-              ? translate("import_users.cards.passwords.all_passwords_present")
-              : translate(
-                  "import_users.cards.passwords.count_passwords_present",
-                  stats.password
-                )}
-          </div>
-          {stats.password > 0 ? (
-            <div>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={passwordMode}
-                    enabled={(progress !== null).toString()}
-                    onChange={onPasswordModeChange}
-                  />
-                }
-                label={translate("import_users.cards.passwords.use_passwords")}
-              />
-            </div>
-          ) : (
-            ""
-          )}
-        </CardContent>
-      </Container>,
+      </Container>
     ];
 
   let conflictCards = stats && !importResults && (
@@ -630,16 +562,7 @@ const FilePicker = props => {
   let startImportCard =
     !values || values.length === 0 || importResults ? undefined : (
       <CardActions>
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={dryRun}
-              onChange={onDryRunModeChanged}
-              enabled={(progress !== null).toString()}
-            />
-          }
-          label={translate("import_users.cards.startImport.simulate_only")}
-        />
+      
         <Button
           size="large"
           onClick={runImport}
@@ -658,7 +581,7 @@ const FilePicker = props => {
   let allCards = [];
   if (uploadCard) allCards.push(uploadCard);
   if (errorCards) allCards.push(errorCards);
-  if (conflictCards) allCards.push(conflictCards);
+  // if (conflictCards) allCards.push(conflictCards);
   if (statsCards) allCards.push(...statsCards);
   if (startImportCard) allCards.push(startImportCard);
   if (resultsCard) allCards.push(resultsCard);

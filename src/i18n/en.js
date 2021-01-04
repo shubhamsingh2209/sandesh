@@ -77,7 +77,7 @@ export default {
       upload: {
         header: "Input CSV file",
         explanation:
-          "Here you can upload a file with comma separated values that is processed to create or update users. The file must include the fields 'id' and 'displayname'. You can download and adapt an example file here: ",
+          "Here you can upload a file with comma separated values that is processed to create or update users. The file must include the fields 'displayname' and 'phone_number'. You can download and adapt an example file here: ",
       },
       startImport: {
         simulate_only: "Simulate only",
